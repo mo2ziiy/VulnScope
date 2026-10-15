@@ -80,8 +80,10 @@ uv run --frozen ruff format --check .
 uv run --frozen mypy
 ```
 
-Secret scanning (SAC-SEC-01 baseline). Scans every file except dependency folders and lockfiles,
-and fails if anything is not already recorded in `.secrets.baseline`:
+Secret scanning (SAC-SEC-01 baseline). Scans every tracked and untracked-but-not-ignored file
+with all detectors, and the lockfiles with the structured detectors only (entropy detectors off,
+because integrity hashes look random). Fails if anything is not already recorded in
+`.secrets.baseline`:
 
 ```bash
 uv run --frozen python tools/check_secrets.py

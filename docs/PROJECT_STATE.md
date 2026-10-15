@@ -1,6 +1,6 @@
 # PROJECT_STATE
 
-- **Current task:** Phase 01 / Task 01.1a — **implemented, awaiting owner review/approval**. No git commit made. Task 01.1b **not started** (needs explicit approval).
+- **Current task:** Phase 01 / Task 01.1a — implemented; initial snapshot committed and pushed on the owner's instruction (2026-10-15). **Independent review remediation done locally, uncommitted, awaiting owner review.** Task 01.1a is **not** owner-approved yet. Task 01.1b **not started** (needs explicit approval).
 - **Phase 00:** complete at documentation/design level (DEC-058); post-Phase-00 audit pass approved 2026-10-15.
 
 ## Environment checks (2026-10-15)
@@ -44,20 +44,32 @@
 | `uv sync --frozen --all-groups` | exit 0 |
 | `pnpm lint` | exit 0 |
 | `pnpm format:check` | exit 0 (first run failed on `eslint.config.mjs`, `README.md` → formatted with Prettier, re-run clean) |
-| `pnpm typecheck` | exit 0 |
+| `pnpm typecheck` | exit 0 — runs `tsc 6.0.3` in `packages/contracts` (checks `src/index.ts`, the only TS file) |
 | `uv run --frozen ruff check .` | exit 0 (first run: 2× S607 from misplaced `noqa` in `tools/check_secrets.py` → fixed, re-run clean) |
 | `uv run --frozen ruff format --check .` | exit 0 (10 files) |
 | `uv run --frozen mypy` | exit 0 (5 source files, strict) |
-| `uv run --frozen python tools/check_secrets.py` | exit 0 (58 files; baseline: 27 plugins, 0 findings) |
+| `uv run --frozen python tools/check_secrets.py` | exit 0 (58 files with all detectors + 2 lockfiles with structured detectors; baseline: 27 plugins, 0 findings) |
 | Negative tests (temporary `.negcheck/`, deleted afterwards) | eslint exit 1, tsc exit 2, ruff exit 1 (incl. S307 `eval`), mypy exit 1, secret scan exit 1 on planted AWS example key — all failed as expected |
+
+## Independent review remediation (2026-10-15, uncommitted)
+
+| Item | Finding | Fix (minimal) | Evidence |
+|---|---|---|---|
+| 1 TypeScript typecheck | Effective today (tsc runs on `packages/contracts/src/index.ts`), but `pnpm -r --if-present typecheck` exits 0 when no workspace package defines `typecheck` → could pass vacuously | Root script → `pnpm -r typecheck` (fails if any workspace package lacks the script) | Vacuous case: with `--if-present` exit 0, without exit 1. Negative test: intentional TS2322 → exit 1; restored → exit 0, no diff |
+| 2a Secret scan, unusual filenames | **Bug:** `git ls-files` quotes non-ASCII names (`"caf\303\251 secret.txt"`); the hook couldn't open the quoted path and skipped it with exit 0 → a synthetic key was missed | NUL-separated listing (`git ls-files -z`), skip paths that no longer exist | Negative test A (non-ASCII + space name) now exit 1 |
+| 2b Secret scan, lockfiles | Lockfiles were excluded entirely; detect-secrets also treats `.lock` as non-text, so `uv.lock` was skipped even when named | Second pass over lockfiles with structured detectors only (entropy detectors off; integrity hashes are high-entropy) and the non-text filter disabled for that pass | Negative tests C (`uv.lock`) and D (`pnpm-lock.yaml`) now exit 1; clean lockfiles exit 0. Only `uv.lock` among tracked files was classified non-text |
+| 2c Baseline | 0 findings, so nothing silently accepted; no `pragma: allowlist` in tracked files | — | Inspected |
+| 3 Git state | Initial commit `bfc6a3c` on local `main` = `origin/main` of `https://github.com/mo2ziiy/VulnScope.git`. Its message (`chore: bootstrap monorepo skeleton, tooling and Phase 00 design docs`) differs from the later-requested `chore: initialize VulnScope monorepo and tooling`; history not rewritten (owner decision pending) | This file updated | `git log`, `git ls-remote` |
+
+Remaining limitations: the general pass still uses detect-secrets' default heuristics (binary-like extensions are skipped; only `uv.lock` was affected among tracked files); the scan covers tracked and untracked-but-not-ignored files only (ignored files such as a local `.env` are never committed, so they aren't scanned).
 
 SAC-SEC-01 status: **local baseline configured and passing** (detect-secrets). CI secret scanning (gitleaks) is Task 01.1b. Client-bundle scanning applies once bundles exist.
 
 ## State
-- **Repo:** git initialized (`main`), **no commits**; 34 new files + existing `docs/` and contract file are untracked; `node_modules/`, `.venv/`, `.mypy_cache/`, `.ruff_cache/` ignored; LF line endings
+- **Repo:** initial commit `bfc6a3c` pushed to `main` of `https://github.com/mo2ziiy/VulnScope` (private; remote was empty); 61 files; local `main` = `origin/main`. Uncommitted remediation changes in 4 files (root package manifest, the scan script under `tools/`, the README, and this file); `node_modules/`, `.venv/`, `.mypy_cache/`, `.ruff_cache/` ignored; LF line endings
 - **Services:** none running · **External scanning:** disabled (`SCANNER_ALLOW_EXTERNAL=false` in `.env.example`; no scanner code exists)
 - **Tests:** only the tooling checks above. No application/implementation tests exist. All SAC/AC/AC-LOCK/AC-RES/AC-STEP remain design specifications
 - **Blockers for 01.1b:** ENV-01, ENV-02, ENV-03 (owner must enable Virtual Machine Platform and install Docker Desktop); PostgreSQL version still to be chosen with evidence (DEC-064)
 - **Open decisions:** OAD-03 · OAD-13 (DEC-038) · OAD-02 (DM-A2 provisional) · DM-A5 (03.1) · TM-OD-01…05 · PRD OD-01, 03, 04, 05 · ARCHITECTURE OAD-01, 06…08, 10…12, 14 · DM-OI-01…03 · PostgreSQL version (DEC-064)
-- **Latest commit:** none
-- **Next:** owner review of 01.1a → approval → first commit (on owner instruction) → 01.1b only after explicit approval
+- **Latest commit:** `bfc6a3c` chore: bootstrap monorepo skeleton, tooling and Phase 00 design docs
+- **Next:** owner review of the remediation → decision on committing it (and on the initial commit message) → owner approval of 01.1a → 01.1b only after explicit approval
