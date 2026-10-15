@@ -35,7 +35,8 @@ docs/               PRD, architecture, ADRs, threat model, backlog
 | uv      | 0.12.21    | pinned in `pyproject.toml` → `required-version` |
 | Git     | any recent |                                                 |
 
-Docker, Docker Compose and the Supabase CLI are **not** needed yet (Tasks 01.1b and 03.1).
+Docker Desktop with Docker Compose v2 is needed for the local PostgreSQL service (Task 01.1b). The
+Supabase CLI is not needed yet (Task 03.1).
 
 ## Setup
 
@@ -94,6 +95,52 @@ To refresh the baseline after reviewing a finding:
 ```bash
 uv run --frozen detect-secrets scan --baseline .secrets.baseline
 ```
+
+## Local PostgreSQL (Task 01.1b-02a)
+
+`infra/compose.yaml` runs PostgreSQL 18.6 only (image pinned by digest, never pulled implicitly). It
+listens on `127.0.0.1:55432` only, runs as the image's `postgres` user (999) with all capabilities
+dropped, a read-only root filesystem and CPU/memory/PID limits. Data lives in the named volume
+`vulnscope_pgdata`, mounted at `/var/lib/postgresql` (PostgreSQL 18 layout). No roles, schemas or
+migrations exist yet.
+
+Client authentication comes from [`infra/postgres/pg_hba.conf`](infra/postgres/pg_hba.conf), mounted
+read-only and loaded with `hba_file`. There are no `trust` rules: TCP (IPv4/IPv6, including
+container loopback) requires `scram-sha-256`, and the Unix socket uses `peer` for the `postgres`
+role only. The image's generated `pg_hba.conf` in the data directory is not used.
+
+Generate the local password once (written to the git-ignored `infra/.secrets/`, never printed):
+
+```bash
+uv run --frozen python tools/gen_local_secrets.py
+```
+
+Start and wait until healthy:
+
+```bash
+docker compose -f infra/compose.yaml up -d --wait
+```
+
+Status:
+
+```bash
+docker compose -f infra/compose.yaml ps
+```
+
+Open a `psql` shell inside the container:
+
+```bash
+docker compose -f infra/compose.yaml exec postgres psql -U postgres
+```
+
+Stop (data is kept):
+
+```bash
+docker compose -f infra/compose.yaml down
+```
+
+`docker compose down -v` **deletes the database volume**. Don't use it unless you really mean to
+wipe local data.
 
 ## Environment variables
 
