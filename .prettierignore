@@ -1,0 +1,10 @@
+# Approved design documents are not reformatted by tooling.
+docs/
+VulnScope_Claude_Code_Master_Prompt.md
+
+# Generated / third-party
+pnpm-lock.yaml
+uv.lock
+.secrets.baseline
+node_modules/
+.venv/

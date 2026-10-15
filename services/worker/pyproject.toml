@@ -1,0 +1,10 @@
+[project]
+name = "vulnscope-worker"
+version = "0.0.0"
+description = "Celery core worker (ADR-0006, DEC-062). Jobs arrive in later tasks."
+requires-python = "==3.12.*"
+dependencies = []
+
+[tool.uv]
+# Skeleton only: not built or installed as a package yet (avoids a build-backend download).
+package = false

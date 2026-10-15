@@ -1,0 +1,10 @@
+[project]
+name = "vulnscope-rules"
+version = "0.0.0"
+description = "Deterministic, versioned rule engine (ADR-0010). Rules arrive in 07.x."
+requires-python = "==3.12.*"
+dependencies = []
+
+[tool.uv]
+# Skeleton only: not built or installed as a package yet (avoids a build-backend download).
+package = false

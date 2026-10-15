@@ -1,0 +1,10 @@
+[project]
+name = "vulnscope-api"
+version = "0.0.0"
+description = "FastAPI modular monolith (ADR-0001). Routes arrive in later tasks."
+requires-python = "==3.12.*"
+dependencies = []
+
+[tool.uv]
+# Skeleton only: not built or installed as a package yet (avoids a build-backend download).
+package = false
