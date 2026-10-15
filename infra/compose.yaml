@@ -18,6 +18,9 @@ services:
     command: ["postgres", "-c", "hba_file=/etc/postgresql/pg_hba.conf"]
     environment:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      # Fresh clusters only: keep the generated data-directory pg_hba.conf free of trust rules.
+      # It is not loaded (hba_file above wins); this removes the dormant fallback.
+      POSTGRES_INITDB_ARGS: "--auth-local=peer --auth-host=scram-sha-256"
     secrets:
       - postgres_password
     volumes:
